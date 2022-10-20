@@ -1,0 +1,179 @@
+### Before start Rselenium, we need to three program
+#https://github.com/mozilla/geckodriver/releases/tag/v0.17.0 <- geckodriver
+#https://sites.google.com/a/chromium.org/chromedriver/ <-chorm driver
+#https://www.seleniumhq.org/download/ <-selenium program
+
+###Before start cmd program, we need to check the JAVA script location
+
+#### cmd code####
+# location of selenium file<- cd C:\Selenium
+# java -Dwebdriver.gecko.driver="geckodriver.exe" -jar selenium-server-standalone-3.141.59.jar -port 4445
+
+rm(list=ls())
+
+library(httr)
+library(rvest)
+library(RSelenium)
+
+remD<-remoteDriver(port=4445L, # input the port number
+                   browserName="chrome") #used browser
+
+remD$open() #link to server
+
+#title on Youtube
+title_youtb<-"vaccine hesitancy"
+
+#go to the homepage
+remD$navigate(paste0("https://www.youtube.com/results?search_query=", title_youtb))
+
+#Read the page's source
+html<-remD$getPageSource()[[1]]
+html<-read_html(html)
+
+#Make selected node to text
+youtube_title<-html %>% html_nodes("#video-title") %>%
+  html_text()
+
+#print 1 to 10
+youtube_title[1:10]
+
+#data cleansing
+#gsub()<-Change the specified text to the desired shape
+#trimws()<-remove spaces
+youtube_title<-gsub("\n","",youtube_title)
+youtube_title<-trimws(youtube_title)
+youtube_title
+
+#save as text file
+#write.table()<- function for save as text file
+write.table(youtube_title,
+            file = "pretest for selenium_title.txt",
+            sep =",",
+            row.names = FALSE,
+            quote=FALSE)
+
+###Collect video comments### Ongoing...
+
+remD$open() #link to server
+remD$navigate("https://www.youtube.com/watch?v=ufXBL9CCtvs") #move to the homepage
+
+#video pause
+btn<-remD$findElement(using = "css selector",
+                      value='.html5-main-video')
+btn$clickElement()
+
+#homepage scroll
+remD$executeScript("window.scrollTo(0,500)")
+
+remD$executeScript("window.scrollTo(500,1000)")
+remD$executeScript("window.scrollTo(1000,1500)")
+
+#read the page source
+html<-remD$getPageSource()[[1]]
+html<-read_html(html)
+
+ytube_comments<-html %>% html_nodes("#content-text") %>% html_text()
+ytube_comments<-ytube_comments[1:50]
+
+head(ytube_comments)
+ytube_comments
+
+#data cleaning
+ytube_comments<-gsub("\n","",ytube_comments)
+ytube_comments<-trimws(ytube_comments)
+ytube_comments
+
+
+#save as text file
+#write.table()<- function for save as text file
+write.table(ytube_comments,
+            file = "pretest for selenium_comments.txt",
+            sep =",",
+            row.names = FALSE,
+            quote=FALSE)
+
+#######instagram hashtag######### Ongoing...
+
+
+library(httr)
+library(rvest)
+library(RSelenium)
+
+remD<-remoteDriver(port=4445L, # input the port number
+                   browserName="chrome") #used browser
+
+remD$open() #link to server
+
+#go to the homepage
+remD$navigate(paste0("https://www.instagram.com/"))
+
+#instert ID and PW
+id<-remD$findElement(using='css',
+                     value=".-MzZI:nth-child(1) .zyHYP")
+id$sendKeysToElement(sendKeys=list("dohyo91@gmail.com"))
+
+pw<-remD$findElement(using='css selector',
+                     value=".-MzZI+ .-MzZI .zyHYP")
+pw$sendKeysToElement(sendKeys=list("lgf00a0ad"))
+
+#login
+login<-remD$findElement(using='css selector',
+                       value=".-MzZI+ .DhRcB")
+login$clickElement()
+
+#Notification settings when login
+click<-remD$findElement(using='css selector',
+                        value=".yWX7d")
+click$clickElement()
+
+#search key on instagram
+searchword<-"vaccine"
+remD$navigate(paste0("https://www.instagram.com/explore/tags/", searchword))
+
+
+#press OK button
+btn<-remD$findElement(using = "css selector",
+                      value='li:nth-child(1) ._8A5w5')
+btn$clickElement()
+
+#make variable for Removing duplicate hashtags
+res<-remD$getPageSource() %>% '[['(1)
+url<-res %>% read_html() %>%
+  html_nodes(css='div.C7I1f > div.C4VMK') %>%
+  html_text()
+removenum<-length(url)
+
+
+####click the most recent contents#####
+recont<-remD$findElement(using = "css selector", 
+                         value='div.eLAPa > div._9AhH0')
+recont$clickElement()
+
+#go to the next contents
+nxcon<-remD$findElement(using = "css selector",
+                        value='div.DdSX2 > a._65Bje.coreSpriteRightPaginationArrow')
+
+# make vector for aggregate hashtags
+rslt<-c()
+
+#for function(to repeat the route)
+for (i in 1:10) { #repeat ten times
+  Sys.sleep(1)
+  res<-remD$getPageSource() %>% '[['(1)
+  
+  # bring the hashtag
+  url<-res %>% read_html() %>%
+    html_nodes(css='div.C7I1f > div.C4VMK') %>%
+    html_text()
+  
+  #Remove duplicate hashtags
+  t1<-url[-c(1:removenum)]
+  #Combining hashtags for each post
+  rslt<-append(rslt, t1)
+  nxcon$clickElement()
+  }
+
+# remove '#' in the hashtag
+library(stringr)
+result<-str_replace(rslt, "#","")
+result
