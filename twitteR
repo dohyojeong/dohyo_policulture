@@ -1,0 +1,67 @@
+### Twitter crawling
+### Dohyo Jeong
+### last update Oct 13 2022
+
+library(twitteR)
+library(base64enc)
+
+options(httr_oauth_cache = TRUE)
+setup_twitter_oauth(consumer_key = "Your consumer Key",
+                    consumer_secret = "Your consumer secret key",
+                    access_token = "Your access token",
+                    access_secret = "Your access secret key")
+getCurRateLimitInfo()
+
+###search by text###
+tw_word <- twitteR::searchTwitter('vaccine', n = 20, 
+                                       #since = '2021-01-01',
+                                       #until = '2021-12-31',
+                                       lang="en")
+# Convert data to dataframe
+tw_wordr_df <- twListToDF(tw_word)
+View(tw_wordr_df)
+
+
+### get users data ###
+usr_df <- userTimeline('nytimes', n=20, includeRts = TRUE)
+
+# view users data and Convert data to datafram
+data_usr_df = twListToDF(usr_df)
+View(data_usr_df)
+
+
+###########################
+## build a corpus using the text mining (tm) package
+library(tm)
+library(SnowballC)
+library(dplyr)
+library(tidytext)
+
+tw_corpus <- VCorpus(VectorSource(data_usr_df$text))
+
+## examine the sms corpus
+print(tw_corpus)
+
+as.character(tw_corpus[[1]])         # content of the first sentence
+as.character(tw_corpus[[2]])
+
+## clean up the corpus using tm_map()
+tw_corpus_clean <- tm_map(tw_corpus, content_transformer(tolower))
+tw_corpus_clean <- tm_map(tw_corpus_clean, removeNumbers)            # remove numbers
+tw_corpus_clean <- tm_map(tw_corpus_clean, removeWords, stopwords()) # remove stop/filler words
+tw_corpus_clean <- tm_map(tw_corpus_clean, removePunctuation)        # remove punctuation
+
+# Checking the list of english stop/filler words
+# stopwords()
+
+## illustration of word stemming
+tw_corpus_clean <- tm_map(tw_corpus_clean, stemDocument)  # `stemDocument` is in `tm`
+tw_corpus_clean <- tm_map(tw_corpus_clean, stripWhitespace) # eliminate unneeded whitespace
+tw_clean_df <- data.frame(text = sapply(tw_corpus_clean,as.character),
+                        stringsAsFactors = FALSE)
+head(tw_clean_df)
+
+
+## create a document-term `sparse matrix` by tokenization
+tw_dtm <- DocumentTermMatrix(tw_corpus_clean)
+tw_dtm
